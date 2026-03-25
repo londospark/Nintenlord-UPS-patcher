@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Nintenlord UPS Patcher
+Comment=UPS patch file utility
+Exec=/home/deck/.local/share/nups/Nintenlord UPS patcher.Avalonia
+Icon=/home/deck/.local/share/nups/nups.png
+Terminal=false
+Categories=Utility;Game;
+Keywords=patch;ups;rom;retro;
+StartupNotify=true
