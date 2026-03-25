@@ -76,10 +76,12 @@ jobs:
       if: startsWith(matrix.runtime, 'linux')
       run: bash .github/scripts/bundle-linux-deps.sh "publish/${{ matrix.runtime }}"
 
-    - name: Create Windows installer (no admin required)
+    - name: Create MSI installer (no admin required)
       if: runner.os == 'Windows'
       run: |
-        powershell -File .github\scripts\create-windows-installer.ps1 -Runtime ${{ matrix.runtime }}
+        $version = "${{ github.ref_name }}" -replace '^v', ''
+        if ([string]::IsNullOrEmpty($version)) { $version = "1.0.0.0" }
+        powershell -File .github\scripts\create-msi.ps1 -Runtime ${{ matrix.runtime }} -Version $version
 
     - name: Create portable archive (Windows)
       if: runner.os == 'Windows'
@@ -100,7 +102,7 @@ jobs:
         path: |
           Nintenlord-UPS-Patcher-Portable-${{ matrix.runtime }}.zip
           Nintenlord-UPS-Patcher-${{ matrix.runtime }}.tar.gz
-          Nintenlord-UPS-Patcher-Setup-${{ matrix.runtime }}.exe
+          Nintenlord-UPS-Patcher-Setup-${{ matrix.runtime }}.msi
         if-no-files-found: ignore
 
   build-linux-appimage:
@@ -193,7 +195,7 @@ jobs:
           artifacts/**/*.tar.gz
           artifacts/**/*.AppImage
           artifacts/**/*.dmg
-          artifacts/**/*.exe
+          artifacts/**/*.msi
         draft: false
         prerelease: false
         generate_release_notes: true
