@@ -167,9 +167,101 @@ jobs:
         path: Nintenlord-UPS-Patcher-${{ matrix.runtime }}.AppImage
         if-no-files-found: error
 
+  build-macos-universal:
+    runs-on: macos-latest
+    needs: build
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download macOS builds
+      uses: actions/download-artifact@v4
+      with:
+        pattern: nups-macos-*
+        path: builds
+
+    - name: Extract archives
+      run: |
+        cd builds/nups-macos-arm64
+        tar -xzf Nintenlord-UPS-Patcher-osx-arm64.tar.gz
+        rm Nintenlord-UPS-Patcher-osx-arm64.tar.gz
+        cd ../nups-macos-x64
+        tar -xzf Nintenlord-UPS-Patcher-osx-x64.tar.gz
+        rm Nintenlord-UPS-Patcher-osx-x64.tar.gz
+
+    - name: Create universal .app bundle
+      run: |
+        # Create .app structure
+        mkdir -p "NUPS.app/Contents/MacOS"
+        mkdir -p "NUPS.app/Contents/Resources"
+
+        # Create Info.plist
+        cat > "NUPS.app/Contents/Info.plist" << 'EOF'
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>CFBundleExecutable</key>
+            <string>NUPS</string>
+            <key>CFBundleIdentifier</key>
+            <string>com.londospark.nups</string>
+            <key>CFBundleName</key>
+            <string>Nintenlord UPS Patcher</string>
+            <key>CFBundleVersion</key>
+            <string>1.0.0</string>
+            <key>CFBundleShortVersionString</key>
+            <string>1.0.0</string>
+            <key>CFBundlePackageType</key>
+            <string>APPL</string>
+            <key>LSMinimumSystemVersion</key>
+            <string>10.15</string>
+        </dict>
+        </plist>
+        EOF
+
+        # Copy icon if exists
+        if [ -f "Nintenlord UPS patcher/NUPS icon.ico" ]; then
+          cp "Nintenlord UPS patcher/NUPS icon.ico" "NUPS.app/Contents/Resources/NUPS.ico"
+        fi
+
+        # Create launcher script that detects architecture
+        cat > "NUPS.app/Contents/MacOS/NUPS" << 'EOF'
+        #!/bin/bash
+        DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+        ARCH=$(uname -m)
+
+        if [ "$ARCH" = "arm64" ]; then
+          exec "$DIR/NUPS-arm64" "$@"
+        else
+          exec "$DIR/NUPS-x64" "$@"
+        fi
+        EOF
+        chmod +x "NUPS.app/Contents/MacOS/NUPS"
+
+        # Copy both architecture binaries
+        cp -r builds/nups-macos-arm64/* "NUPS.app/Contents/MacOS/"
+        mv "NUPS.app/Contents/MacOS/Nintenlord UPS patcher.Avalonia" "NUPS.app/Contents/MacOS/NUPS-arm64"
+
+        cp -r builds/nups-macos-x64/* "NUPS.app/Contents/MacOS/"
+        mv "NUPS.app/Contents/MacOS/Nintenlord UPS patcher.Avalonia" "NUPS.app/Contents/MacOS/NUPS-x64"
+
+        # Make binaries executable
+        chmod +x "NUPS.app/Contents/MacOS/NUPS-arm64"
+        chmod +x "NUPS.app/Contents/MacOS/NUPS-x64"
+
+        # Create DMG
+        hdiutil create -volname "NUPS" -srcfolder "NUPS.app" -ov -format UDZO "Nintenlord-UPS-Patcher-macOS-universal.dmg"
+
+    - name: Upload macOS Universal App
+      uses: actions/upload-artifact@v4
+      with:
+        name: nups-macos-universal
+        path: Nintenlord-UPS-Patcher-macOS-universal.dmg
+        if-no-files-found: error
+
   create-release:
     runs-on: ubuntu-latest
-    needs: [build, build-linux-appimage]
+    needs: [build, build-linux-appimage, build-macos-universal]
     if: startsWith(github.ref, 'refs/tags/')
     permissions:
       contents: write
@@ -187,6 +279,7 @@ jobs:
           artifacts/**/*.zip
           artifacts/**/*.tar.gz
           artifacts/**/*.AppImage
+          artifacts/**/*.dmg
         draft: false
         prerelease: false
         generate_release_notes: true
