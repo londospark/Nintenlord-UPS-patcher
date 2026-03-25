@@ -24,7 +24,7 @@ namespace Nintenlord.UPSpatcher
 
         private void button3_Click(object sender, EventArgs e)
         {
-            OpenFileDialog open = new OpenFileDialog();
+            var open = new OpenFileDialog();
             open.Title = "Select the original file.";
             open.Filter = "All files|*";
             open.Multiselect = false;
@@ -37,7 +37,7 @@ namespace Nintenlord.UPSpatcher
 
         private void button4_Click(object sender, EventArgs e)
         {
-            OpenFileDialog open = new OpenFileDialog();
+            var open = new OpenFileDialog();
             open.Title = "Select the modified file.";
             open.Filter = "All files|*";
             open.Multiselect = false;
@@ -50,7 +50,7 @@ namespace Nintenlord.UPSpatcher
 
         private void button5_Click(object sender, EventArgs e)
         {
-            SaveFileDialog save = new SaveFileDialog();
+            var save = new SaveFileDialog();
             save.Filter = "UPS file|*.ups";
             save.Title = "Select where to save patch";
             save.AddExtension = true;
@@ -68,7 +68,7 @@ namespace Nintenlord.UPSpatcher
 
             try
             {
-                BinaryReader br = new BinaryReader(File.OpenRead(textBox1.Text));
+                var br = new BinaryReader(File.OpenRead(textBox1.Text));
                 original = br.ReadBytes((int)br.BaseStream.Length);
                 br.Close();
             }
@@ -80,7 +80,7 @@ namespace Nintenlord.UPSpatcher
 
             try
             {
-                BinaryReader br = new BinaryReader(File.Open(textBox2.Text, FileMode.Open));
+                var br = new BinaryReader(File.Open(textBox2.Text, FileMode.Open));
                 modified = br.ReadBytes((int)br.BaseStream.Length);
                 br.Close();
             }
