@@ -1,5 +1,8 @@
 name: Release
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 on:
   push:
     branches: [ main ]
@@ -10,6 +13,7 @@ on:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         include:
           # Windows
@@ -21,30 +25,30 @@ jobs:
             artifact-name: nups-windows-arm64
 
           # macOS
-          - os: macos-13
+          - os: macos-15-intel
             runtime: osx-x64
             artifact-name: nups-macos-x64
           - os: macos-latest
             runtime: osx-arm64
             artifact-name: nups-macos-arm64
 
-          # Linux - use ubuntu-20.04 for older glibc (SteamOS compatibility)
-          - os: ubuntu-20.04
+          # Linux - ubuntu-22.04 (glibc 2.35, compatible with SteamOS 3+ and modern distros)
+          - os: ubuntu-22.04
             runtime: linux-x64
             artifact-name: nups-linux-x64
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04-arm
             runtime: linux-arm64
             artifact-name: nups-linux-arm64
 
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         submodules: recursive
 
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: '10.0.x'
 
@@ -62,6 +66,7 @@ jobs:
           libfontconfig1-dev
 
     - name: Publish AOT
+      shell: bash
       run: |
         dotnet publish "Nintenlord UPS patcher.Avalonia/Nintenlord UPS patcher.Avalonia.csproj" \
           -c Release \
@@ -75,13 +80,6 @@ jobs:
     - name: Bundle Linux dependencies (for SteamOS)
       if: startsWith(matrix.runtime, 'linux')
       run: bash .github/scripts/bundle-linux-deps.sh "publish/${{ matrix.runtime }}"
-
-    - name: Create MSI installer (no admin required)
-      if: runner.os == 'Windows'
-      run: |
-        $version = "${{ github.ref_name }}" -replace '^v', ''
-        if ([string]::IsNullOrEmpty($version)) { $version = "1.0.0.0" }
-        powershell -File .github\scripts\create-msi.ps1 -Runtime ${{ matrix.runtime }} -Version $version
 
     - name: Create portable archive (Windows)
       if: runner.os == 'Windows'
@@ -102,8 +100,46 @@ jobs:
         path: |
           Nintenlord-UPS-Patcher-Portable-${{ matrix.runtime }}.zip
           Nintenlord-UPS-Patcher-${{ matrix.runtime }}.tar.gz
-          Nintenlord-UPS-Patcher-Setup-${{ matrix.runtime }}.msi
         if-no-files-found: ignore
+
+  build-windows-msi:
+    runs-on: windows-latest
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runtime: win-x64
+            artifact-name: nups-windows-x64
+          - runtime: win-arm64
+            artifact-name: nups-windows-arm64
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Download Windows build
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ matrix.artifact-name }}
+        path: publish/${{ matrix.runtime }}
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: Create MSI installer
+      run: |
+        $version = "${{ github.ref_name }}" -replace '^v', ''
+        if ([string]::IsNullOrEmpty($version)) { $version = "1.0.0.0" }
+        & ".github\scripts\create-msi.ps1" -Runtime ${{ matrix.runtime }} -Version $version
+
+    - name: Upload MSI installer
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.artifact-name }}-msi
+        path: Nintenlord-UPS-Patcher-Setup-${{ matrix.runtime }}.msi
+        if-no-files-found: error
 
   build-linux-appimage:
     runs-on: ubuntu-latest
@@ -118,7 +154,10 @@ jobs:
             arch: aarch64
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
+
+    - name: Install squashfs-tools
+      run: sudo apt-get install -y squashfs-tools
 
     - name: Download Linux build
       uses: actions/download-artifact@v4
@@ -147,7 +186,7 @@ jobs:
     needs: build
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Download macOS builds
       uses: actions/download-artifact@v4
@@ -176,7 +215,7 @@ jobs:
 
   create-release:
     runs-on: ubuntu-latest
-    needs: [build, build-linux-appimage, build-macos-universal]
+    needs: [build, build-windows-msi, build-linux-appimage, build-macos-universal]
     if: startsWith(github.ref, 'refs/tags/')
     permissions:
       contents: write

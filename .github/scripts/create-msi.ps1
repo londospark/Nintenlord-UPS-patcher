@@ -13,15 +13,15 @@ Write-Host "Creating MSI installer for $Runtime..."
 
 # Ensure WiX v4 is installed
 Write-Host "Checking for WiX Toolset..."
-$wixPath = "wix.exe"
-
-try {
-    & $wixPath --version | Out-Null
-} catch {
+if (-not (Get-Command "wix.exe" -ErrorAction SilentlyContinue)) {
     Write-Host "Installing WiX Toolset v4..."
     dotnet tool install --global wix --version 4.0.5
     $env:PATH = "$env:PATH;$env:USERPROFILE\.dotnet\tools"
 }
+
+# Ensure the UI extension is available (pin to same version as the tool)
+Write-Host "Adding WiX UI extension..."
+& wix extension add WixToolset.UI.wixext/4.0.5
 
 # Set variables
 $publishDir = Resolve-Path "publish\$Runtime"
@@ -46,7 +46,7 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
-Write-Host "✓ Created MSI: $outputFile"
-Write-Host "  - Per-user installation (no admin required)"
-Write-Host "  - Installs to: %LOCALAPPDATA%\NUPS"
-Write-Host "  - Creates Start Menu and Desktop shortcuts"
+Write-Host "[OK] Created MSI: $outputFile"
+Write-Host "     - Per-user installation (no admin required)"
+Write-Host "     - Installs to: %LOCALAPPDATA%\NUPS"
+Write-Host "     - Creates Start Menu and Desktop shortcuts"

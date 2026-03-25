@@ -1,9 +1,11 @@
 #!/bin/bash
-# Create AppImage for Linux
+# Create a Type 2 AppImage for Linux manually.
+# This avoids appimagetool entirely — we use mksquashfs + the official
+# type2-runtime, concatenated together. No FUSE, no ARCH env var issues.
 set -e
 
-RUNTIME="$1"
-ARCH="$2"
+RUNTIME="$1"    # e.g. linux-x64, linux-arm64
+ARCH="$2"       # e.g. x86_64, aarch64
 BUILD_DIR="$3"
 
 if [ -z "$RUNTIME" ] || [ -z "$ARCH" ] || [ -z "$BUILD_DIR" ]; then
@@ -12,17 +14,18 @@ if [ -z "$RUNTIME" ] || [ -z "$ARCH" ] || [ -z "$BUILD_DIR" ]; then
   exit 1
 fi
 
-# Create AppImage structure
+OUTPUT="Nintenlord-UPS-Patcher-${RUNTIME}.AppImage"
+
+# --- Build the AppDir structure ---
 mkdir -p AppDir/usr/bin
 mkdir -p AppDir/usr/share/applications
 mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
 
-# Copy executable
 cp -r "$BUILD_DIR"/* AppDir/usr/bin/
 chmod +x AppDir/usr/bin/Nintenlord\ UPS\ patcher.Avalonia || true
 
-# Create desktop file
-cat > AppDir/usr/share/applications/nups.desktop << 'EOF'
+# Desktop file
+cat > AppDir/nups.desktop << 'EOF'
 [Desktop Entry]
 Type=Application
 Name=Nintenlord UPS Patcher
@@ -31,8 +34,9 @@ Icon=nups
 Categories=Utility;
 Terminal=false
 EOF
+cp AppDir/nups.desktop AppDir/usr/share/applications/nups.desktop
 
-# Create AppRun
+# AppRun entry point
 cat > AppDir/AppRun << 'EOF'
 #!/bin/bash
 SELF=$(readlink -f "$0")
@@ -42,21 +46,25 @@ exec "${HERE}/usr/bin/Nintenlord UPS patcher.Avalonia" "$@"
 EOF
 chmod +x AppDir/AppRun
 
-# Copy icon if exists
-if [ -f "Nintenlord UPS patcher/NUPS icon.ico" ]; then
-  cp "Nintenlord UPS patcher/NUPS icon.ico" AppDir/usr/share/icons/hicolor/256x256/apps/nups.ico
-fi
+# Icon
+cp .github/installers/nups.png AppDir/nups.png
+cp .github/installers/nups.png AppDir/usr/share/icons/hicolor/256x256/apps/nups.png
 
-ln -s usr/share/applications/nups.desktop AppDir/nups.desktop
-if [ -f AppDir/usr/share/icons/hicolor/256x256/apps/nups.ico ]; then
-  ln -s usr/share/icons/hicolor/256x256/apps/nups.ico AppDir/nups.ico
-fi
+# --- Download the type-2 runtime for the target architecture ---
+RUNTIME_URL="https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-${ARCH}"
+echo "Downloading type2-runtime for ${ARCH}..."
+wget -q -O runtime "${RUNTIME_URL}"
+chmod +x runtime
 
-# Download appimagetool
-wget -O appimagetool "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-${ARCH}.AppImage"
-chmod +x appimagetool
+# --- Create squashfs from AppDir ---
+echo "Creating squashfs..."
+mksquashfs AppDir payload.squashfs -root-owned -noappend -comp zstd -quiet
 
-# Build AppImage
-ARCH="$ARCH" ./appimagetool AppDir "Nintenlord-UPS-Patcher-${RUNTIME}.AppImage"
+# --- Concatenate runtime + squashfs = AppImage ---
+echo "Assembling AppImage..."
+cat runtime payload.squashfs > "${OUTPUT}"
+chmod +x "${OUTPUT}"
 
-echo "✓ Created AppImage: Nintenlord-UPS-Patcher-${RUNTIME}.AppImage"
+# Verify the result
+ls -lh "${OUTPUT}"
+echo "Created AppImage: ${OUTPUT}"

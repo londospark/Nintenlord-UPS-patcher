@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
   <Package Name="Nintenlord UPS Patcher"
            Manufacturer="londospark"
-           Version="1.0.0.0"
+           Version="$(var.ProductVersion)"
            UpgradeCode="B8E9D9F0-8F4E-4E8E-9E8E-8E8E8E8E8E8E"
            Scope="perUser">
 
@@ -38,9 +39,11 @@
 
   <Fragment>
     <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
-      <!-- Main executable -->
+      <!-- AOT publishes a single native executable; list it directly -->
       <Component Id="MainExecutable">
-        <File Source="$(var.PublishDir)\Nintenlord UPS patcher.Avalonia.exe" KeyPath="yes">
+        <File Id="MainExe"
+              Source="$(var.PublishDir)\Nintenlord UPS patcher.Avalonia.exe"
+              KeyPath="yes">
           <Shortcut Id="DesktopShortcut"
                     Directory="DesktopFolder"
                     Name="Nintenlord UPS Patcher"
@@ -49,11 +52,6 @@
                     WorkingDirectory="INSTALLFOLDER"
                     Advertise="no" />
         </File>
-      </Component>
-
-      <!-- All other files from publish directory -->
-      <Component Id="PublishedFiles">
-        <File Source="$(var.PublishDir)\*" Exclude="Nintenlord UPS patcher.Avalonia.exe" />
       </Component>
     </ComponentGroup>
 
