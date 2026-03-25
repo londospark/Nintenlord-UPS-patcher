@@ -6,6 +6,8 @@
     <Nullable>disable</Nullable>
     <UseAppHost>true</UseAppHost>
     <ApplicationIcon>..\Nintenlord UPS patcher\NUPS icon.ico</ApplicationIcon>
+    <PublishAot>true</PublishAot>
+    <InvariantGlobalization>false</InvariantGlobalization>
   </PropertyGroup>
 
   <ItemGroup>
