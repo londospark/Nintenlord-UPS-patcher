@@ -109,6 +109,12 @@ jobs:
         name: ${{ matrix.artifact-name }}
         path: publish/${{ matrix.runtime }}
 
+    - name: Extract portable archive
+      run: |
+        cd publish/${{ matrix.runtime }}
+        7z x Nintenlord-UPS-Patcher-Portable-${{ matrix.runtime }}.zip
+        Remove-Item Nintenlord-UPS-Patcher-Portable-${{ matrix.runtime }}.zip
+
     - name: Setup .NET
       uses: actions/setup-dotnet@v5
       with:
