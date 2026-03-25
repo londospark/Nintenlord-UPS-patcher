@@ -16,7 +16,7 @@ namespace Nintenlord.UPSpatcher
 
         private void button1_Click(object sender, EventArgs e)
         {
-            OpenFileDialog open = new OpenFileDialog();
+            var open = new OpenFileDialog();
             open.Title = "Select a patch";
             open.Filter = "UPS files|*.ups";
             open.Multiselect = false;
@@ -35,7 +35,7 @@ namespace Nintenlord.UPSpatcher
                 return;
             }
 
-            List<string> lines = new List<String>();
+            var lines = new List<String>();
             await Task.Run(() =>
             {
                 UPSfile UPSFile = new UPSfile(textBox1.Text);
@@ -44,22 +44,22 @@ namespace Nintenlord.UPSpatcher
 
                 lines.Capacity = details.Length + 1;
                 lines.Add(textBox2.Lines[0]);
-                string offsets = "Offsets";
-                string lenghts = "Lenghts";
+                var offsets = "Offsets";
+                var lenghts = "Lenghts";
                 lines.Add(offsets);
-                int longestOffsetLenght = offsets.Length;
-                for (int i = 0; i < details.Length / 2; i++)
+                var longestOffsetLenght = offsets.Length;
+                for (var i = 0; i < details.Length / 2; i++)
                 {
-                    string line = Convert.ToString(details[i, 0], 16);
+                    var line = Convert.ToString(details[i, 0], 16);
                     if (line.Length + 1 > longestOffsetLenght)
                         longestOffsetLenght = line.Length + 1;
                     lines.Add(line);
                 }
 
-                for (int i = 1; i < lines.Count; i++)
+                for (var i = 1; i < lines.Count; i++)
                     lines[i] += "\t";
                 lines[1] += lenghts;
-                for (int i = 2; i < lines.Count; i++)
+                for (var i = 2; i < lines.Count; i++)
                 {
                     lines[i] += Convert.ToString(details[i - 2, 1], 16);
                     lines[i] = lines[i].ToUpper();
