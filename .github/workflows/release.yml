@@ -21,6 +21,9 @@ jobs:
             artifact-name: nups-windows-arm64
 
           # macOS
+          - os: macos-13
+            runtime: osx-x64
+            artifact-name: nups-macos-x64
           - os: macos-latest
             runtime: osx-arm64
             artifact-name: nups-macos-arm64
