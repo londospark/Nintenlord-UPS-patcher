@@ -5,7 +5,6 @@ env:
 
 on:
   push:
-    branches: [ main ]
     tags:
       - 'v*'
   workflow_dispatch:
@@ -131,7 +130,7 @@ jobs:
     - name: Create MSI installer
       run: |
         $version = "${{ github.ref_name }}" -replace '^v', ''
-        if ([string]::IsNullOrEmpty($version)) { $version = "1.0.0.0" }
+        if (-not ($version -match '^\d+\.\d+')) { $version = "1.0.0.0" }
         & ".github\scripts\create-msi.ps1" -Runtime ${{ matrix.runtime }} -Version $version
 
     - name: Upload MSI installer
