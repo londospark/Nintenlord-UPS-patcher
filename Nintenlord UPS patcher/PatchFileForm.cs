@@ -16,7 +16,7 @@ namespace Nintenlord.UPSpatcher
             this.MinimumSize = new Size(this.Width - this.textBox1.Width, this.Height);
         }
 
-        void Form1_Resize(object sender, EventArgs e)
+        private void Form1_Resize(object sender, EventArgs e)
         {
             textBox1.Size = this.Size - this.MinimumSize;
             textBox3.Size = this.Size - this.MinimumSize;
@@ -50,7 +50,7 @@ namespace Nintenlord.UPSpatcher
 
         private void button2_Click(object sender, EventArgs e)
         {
-            UPSfile upsFile = new UPSfile(textBox3.Text);
+            var upsFile = new UPSfile(textBox3.Text);
             byte[] file = null;
 
             try
@@ -71,7 +71,7 @@ namespace Nintenlord.UPSpatcher
                 return;
             }
 
-            bool validToApply = upsFile.ValidToApply(file);
+            var validToApply = upsFile.ValidToApply(file);
 
             if (radioButton1.Checked)
             {
@@ -97,7 +97,7 @@ namespace Nintenlord.UPSpatcher
             else if (!radioButton4.Checked)
             {
                 throw new Exception("What do you want me to do!?!?!?");
-            }                
+            }
 
             if (checkBox1.Checked)
             {
@@ -116,7 +116,7 @@ namespace Nintenlord.UPSpatcher
                 File.Copy(textBox1.Text, filePath, false);
             }
 
-            byte[] newFile = upsFile.Apply(file);
+            var newFile = upsFile.Apply(file);
 
             try
             {
@@ -134,9 +134,6 @@ namespace Nintenlord.UPSpatcher
             this.Close();
         }
 
-        private void button1_Click(object sender, EventArgs e)
-        {
-            this.Close();
-        }
+        private void button1_Click(object sender, EventArgs e) => this.Close();
     }
 }

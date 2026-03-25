@@ -15,7 +15,7 @@ namespace Nintenlord.UPSpatcher
             this.MinimumSize = new Size(this.Width - this.textBox1.Width, this.Height);
         }
 
-        void Form2_Resize(object sender, EventArgs e)
+        private void Form2_Resize(object sender, EventArgs e)
         {
             textBox1.Size = this.Size - this.MinimumSize;
             textBox2.Size = this.Size - this.MinimumSize;
@@ -85,22 +85,19 @@ namespace Nintenlord.UPSpatcher
                 br.Close();
             }
             catch (Exception)
-            {                
+            {
                 MessageBox.Show("Error opening file\n" + textBox2.Text);
                 return;
             }
-            
 
-            UPSfile upsFile = new UPSfile(original, modified);
+
+            var upsFile = new UPSfile(original, modified);
             upsFile.WriteToFile(textBox3.Text);
             MessageBox.Show("Patch has been created.");
 
             this.Close();
         }
 
-        private void button1_Click(object sender, EventArgs e)
-        {
-            this.Close();
-        }
+        private void button1_Click(object sender, EventArgs e) => this.Close();
     }
 }
