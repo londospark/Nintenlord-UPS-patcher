@@ -76,37 +76,16 @@ jobs:
       if: startsWith(matrix.runtime, 'linux')
       run: bash .github/scripts/bundle-linux-deps.sh "publish/${{ matrix.runtime }}"
 
-    - name: Create Windows installer
+    - name: Create Windows installer (no admin required)
       if: runner.os == 'Windows'
       run: |
-        # Download and install Inno Setup
-        choco install innosetup -y
+        powershell -File .github\scripts\create-windows-installer.ps1 -Runtime ${{ matrix.runtime }}
 
-        # Determine architecture settings for Inno Setup
-        if ("${{ matrix.runtime }}" -eq "win-x64") {
-          $archAllowed = "x64compatible"
-          $arch64Bit = "x64compatible"
-        } else {
-          $archAllowed = "arm64"
-          $arch64Bit = "arm64"
-        }
-
-        # Compile installer
-        & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
-          /DMyAppVersion="${{ github.ref_name }}" `
-          /DRUNTIME="${{ matrix.runtime }}" `
-          /DARCH_ALLOWED="$archAllowed" `
-          /DARCH_64BIT="$arch64Bit" `
-          ".github\installers\windows-installer.iss"
-
-        # Move installer to root
-        Move-Item ".github\installers\Nintenlord-UPS-Patcher-Setup-${{ matrix.runtime }}.exe" "."
-
-    - name: Create archive (Windows)
+    - name: Create portable archive (Windows)
       if: runner.os == 'Windows'
       run: |
         cd publish/${{ matrix.runtime }}
-        7z a ../../Nintenlord-UPS-Patcher-${{ matrix.runtime }}.zip *
+        7z a ../../Nintenlord-UPS-Patcher-Portable-${{ matrix.runtime }}.zip *
 
     - name: Create archive (Unix)
       if: runner.os != 'Windows'
@@ -119,7 +98,7 @@ jobs:
       with:
         name: ${{ matrix.artifact-name }}
         path: |
-          Nintenlord-UPS-Patcher-${{ matrix.runtime }}.zip
+          Nintenlord-UPS-Patcher-Portable-${{ matrix.runtime }}.zip
           Nintenlord-UPS-Patcher-${{ matrix.runtime }}.tar.gz
           Nintenlord-UPS-Patcher-Setup-${{ matrix.runtime }}.exe
         if-no-files-found: ignore
