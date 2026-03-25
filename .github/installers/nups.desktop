@@ -1,11 +1,12 @@
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=Nintenlord UPS Patcher
-Comment=UPS patch file utility
-Exec=/home/deck/.local/share/nups/Nintenlord UPS patcher.Avalonia
-Icon=/home/deck/.local/share/nups/nups.png
-Terminal=false
-Categories=Utility;Game;
-Keywords=patch;ups;rom;retro;
-StartupNotify=true
+Name=Install Nintenlord UPS Patcher
+Comment=Download and install Nintenlord UPS Patcher from GitHub
+Exec=bash -c 'curl -sL https://raw.githubusercontent.com/londospark/Nintenlord-UPS-patcher/main/.github/installers/install-nups.sh | bash'
+Icon=application-x-executable
+Terminal=true
+Categories=Utility;
+Keywords=install;patch;ups;rom;retro;
+StartupNotify=false
+X-Desktop-File-Install-Version=0.26

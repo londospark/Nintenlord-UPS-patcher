@@ -29,18 +29,7 @@ for lib in $(ldd "Nintenlord UPS patcher.Avalonia" | grep "=> /" | awk '{print $
   fi
 done
 
-# Copy installer script for SteamOS
-if [ -f "../.github/scripts/install-steamos.sh" ]; then
-  cp "../.github/scripts/install-steamos.sh" .
-  chmod +x "install-steamos.sh"
-fi
-
-# Copy .desktop file
-if [ -f "../.github/installers/nups.desktop" ]; then
-  cp "../.github/installers/nups.desktop" .
-fi
-
-# Copy icon if exists
+# Copy icon if exists (needed for desktop integration)
 if [ -f "../Nintenlord UPS patcher/NUPS icon.ico" ]; then
   cp "../Nintenlord UPS patcher/NUPS icon.ico" .
 fi
