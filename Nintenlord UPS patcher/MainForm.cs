@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Windows.Forms;
 
 namespace Nintenlord.UPSpatcher
@@ -24,10 +24,7 @@ namespace Nintenlord.UPSpatcher
             form.ShowDialog();
         }
 
-        private void button3_Click(object sender, EventArgs e)
-        {
-            this.Close();
-        }
+        private void button3_Click(object sender, EventArgs e) => this.Close();
 
         private void button4_Click(object sender, EventArgs e)
         {

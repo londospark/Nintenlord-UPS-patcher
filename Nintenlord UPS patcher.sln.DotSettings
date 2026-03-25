@@ -1,0 +1,24 @@
+﻿<wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+	<s:String x:Key="/Default/CodeStyle/Naming/CSharpNaming/UserRules/=4a98fdf6_002D7d98_002D4f5a_002Dafeb_002Dea44ad98c70c/@EntryIndexedValue">&lt;Policy&gt;&lt;Descriptor Staticness="Instance" AccessRightKinds="Private" Description="Instance fields (private)"&gt;&lt;ElementKinds&gt;&lt;Kind Name="FIELD" /&gt;&lt;Kind Name="READONLY_FIELD" /&gt;&lt;/ElementKinds&gt;&lt;/Descriptor&gt;&lt;Policy Inspect="False" WarnAboutPrefixesAndSuffixes="False" Prefix="" Suffix="" Style="AaBb" /&gt;&lt;/Policy&gt;</s:String>
+	<!-- EditorConfig Support -->
+	<s:Boolean x:Key="/Default/EditorConfig/EnableEditorConfig/@EntryValue">True</s:Boolean>
+
+	<!-- Code Style Settings -->
+	<!-- Prefer var -->
+	<s:String x:Key="/Default/CodeStyle/CSharp/CSharpPlaceOnSingleLine/SIMPLE_BLOCK/@EntryValue">ALWAYS</s:String>
+
+	<!-- var preferences (enabled via EditorConfig above) -->
+	<s:String x:Key="/Default/CodeStyle/Naming/CSharpNaming/PredefinedNamingRules/=PrivateInstanceFields/@EntryIndexedValue">PrivateInstanceFields</s:String>
+
+	<!-- Reformat Code Settings -->
+	<s:Boolean x:Key="/Default/CodeStyle/CSharp/FormatAfterPaste/@EntryValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/CodeEditing/CodeCleanup/CleanupOnSave/@EntryValue">True</s:Boolean>
+
+	<!-- Code Cleanup Profile - Custom -->
+	<s:String x:Key="/Default/CodeCleanup/SilentCleanupProfile/@EntryValue">Custom: Reformat Code</s:String>
+	<s:Boolean x:Key="/Default/CodeCleanup/SilentCleanupProfile_Override/@EntryValue">False</s:Boolean>
+
+	<!-- Enable var usage in code cleanup -->
+	<s:Boolean x:Key="/Default/CodeStyle/CSharp/CSharpParserDefinitions/CSharpCodeStyleNotEnforcedSeverity/@EntryValue">False</s:Boolean>
+	<s:Boolean x:Key="/Default/Environment/SettingsMigration/IsMigratorApplied/=JetBrains_002EReSharper_002EPsi_002ECSharp_002ECodeStyle_002ESettingsUpgrade_002EPredefinedNamingRulesToUserRulesUpgrade/@EntryIndexedValue">True</s:Boolean>
+</wpf:ResourceDictionary>
