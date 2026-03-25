@@ -1,0 +1,18 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/Nintenlord.Hacking/" />
+  <Folder Name="/tests/">
+    <Project Path="tests/Nintenlord.Hacking.Core.Tests/Nintenlord.Hacking.Core.Tests.csproj" />
+  </Folder>
+  <Project Path="Nintenlord UPS patcher.Avalonia/Nintenlord UPS patcher.Avalonia.csproj" />
+  <Project Path="Nintenlord UPS patcher/Nintenlord UPS patcher.csproj" />
+  <Project Path="Nintenlord.Hacking/Nintenlord.Hacking.Core/Nintenlord.Hacking.Core.csproj" />
+  <Project Path="Nintenlord.Hacking/Nintenlord/Nintenlord/Nintenlord.csproj" />
+  <Properties Name="ExtensibilityGlobals" Scope="PostLoad">
+    <Property Name="StartupProject" Value="{A6A7C1C7-342A-4A3B-BEB9-CF6DABFD936A}" />
+  </Properties>
+</Solution>

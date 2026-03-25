@@ -38,8 +38,8 @@ namespace Nintenlord.UPSpatcher
             var lines = new List<String>();
             await Task.Run(() =>
             {
-                UPSfile UPSFile = new UPSfile(textBox1.Text);
-                int[,] details = UPSFile.GetData();
+                var UPSFile = new UPSfile(textBox1.Text);
+                var details = UPSFile.GetData();
                 UPSFile = null;
 
                 lines.Capacity = details.Length + 1;
@@ -69,9 +69,6 @@ namespace Nintenlord.UPSpatcher
             textBox2.Lines = lines.ToArray();
         }
 
-        private void button3_Click(object sender, EventArgs e)
-        {
-            this.Close();
-        }
+        private void button3_Click(object sender, EventArgs e) => this.Close();
     }
 }

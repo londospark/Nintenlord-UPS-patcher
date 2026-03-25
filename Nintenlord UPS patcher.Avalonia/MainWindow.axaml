@@ -1,0 +1,98 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Nintenlord.UPSpatcher.AvaloniaApp.MainWindow"
+        Width="900"
+        Height="700"
+        MinWidth="760"
+        MinHeight="560"
+        Title="Nintenlord UPS patcher (Linux-compatible)">
+  <TabControl Margin="12">
+    <TabItem Header="Patch File">
+      <ScrollViewer>
+        <StackPanel Spacing="10" Margin="8">
+          <TextBlock Text="Target file" />
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <TextBox x:Name="PatchTargetFileTextBox" />
+            <Button Grid.Column="1" Content="Browse" Click="BrowsePatchTargetFile_Click" />
+          </Grid>
+
+          <TextBlock Text="UPS patch file" />
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <TextBox x:Name="PatchFileTextBox" />
+            <Button Grid.Column="1" Content="Browse" Click="BrowsePatchFile_Click" />
+          </Grid>
+
+          <TextBlock Text="Patch mismatch behavior" Margin="0,8,0,0" />
+          <StackPanel Spacing="4">
+            <RadioButton x:Name="OnMismatchCancelRadio" Content="Cancel if patch does not match (safe default)" IsChecked="True" GroupName="MismatchMode" />
+            <RadioButton x:Name="OnMismatchAskRadio" Content="Ask before patching if mismatch" GroupName="MismatchMode" />
+            <RadioButton x:Name="OnMismatchWarnRadio" Content="Warn and continue if mismatch" GroupName="MismatchMode" />
+            <RadioButton x:Name="OnMismatchForceRadio" Content="Always patch without warning" GroupName="MismatchMode" />
+          </StackPanel>
+
+          <CheckBox x:Name="CreateBackupCheckBox" Content="Create .bak backup before patching" IsChecked="True" Margin="0,8,0,0" />
+
+          <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,12,0,0">
+            <Button Content="Apply Patch" Click="ApplyPatch_Click" />
+            <Button Content="Clear" Click="ClearPatchTab_Click" />
+          </StackPanel>
+        </StackPanel>
+      </ScrollViewer>
+    </TabItem>
+
+    <TabItem Header="Create UPS">
+      <ScrollViewer>
+        <StackPanel Spacing="10" Margin="8">
+          <TextBlock Text="Original file" />
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <TextBox x:Name="OriginalFileTextBox" />
+            <Button Grid.Column="1" Content="Browse" Click="BrowseOriginalFile_Click" />
+          </Grid>
+
+          <TextBlock Text="Modified file" />
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <TextBox x:Name="ModifiedFileTextBox" />
+            <Button Grid.Column="1" Content="Browse" Click="BrowseModifiedFile_Click" />
+          </Grid>
+
+          <TextBlock Text="Output UPS file" />
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <TextBox x:Name="OutputPatchFileTextBox" />
+            <Button Grid.Column="1" Content="Browse" Click="BrowseOutputPatchFile_Click" />
+          </Grid>
+
+          <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,12,0,0">
+            <Button Content="Create Patch" Click="CreatePatch_Click" />
+            <Button Content="Clear" Click="ClearCreateTab_Click" />
+          </StackPanel>
+        </StackPanel>
+      </ScrollViewer>
+    </TabItem>
+
+    <TabItem Header="Inspect UPS">
+      <ScrollViewer>
+        <StackPanel Spacing="10" Margin="8">
+          <TextBlock Text="UPS patch file" />
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <TextBox x:Name="InspectPatchFileTextBox" />
+            <Button Grid.Column="1" Content="Browse" Click="BrowseInspectPatchFile_Click" />
+          </Grid>
+
+          <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+            <Button Content="Read Patch Data" Click="ReadPatchData_Click" />
+            <Button Content="Clear" Click="ClearInspectTab_Click" />
+          </StackPanel>
+
+          <TextBlock Text="Patch details" Margin="0,12,0,0" />
+          <TextBox x:Name="InspectOutputTextBox"
+                   AcceptsReturn="True"
+                   IsReadOnly="True"
+                   MinHeight="360"
+                   FontFamily="Consolas" />
+        </StackPanel>
+      </ScrollViewer>
+    </TabItem>
+  </TabControl>
+</Window>
+
+
