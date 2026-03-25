@@ -28,11 +28,11 @@ jobs:
             runtime: osx-arm64
             artifact-name: nups-macos-arm64
 
-          # Linux
-          - os: ubuntu-latest
+          # Linux - use ubuntu-20.04 for older glibc (SteamOS compatibility)
+          - os: ubuntu-20.04
             runtime: linux-x64
             artifact-name: nups-linux-x64
-          - os: ubuntu-latest
+          - os: ubuntu-20.04
             runtime: linux-arm64
             artifact-name: nups-linux-arm64
 
@@ -51,6 +51,16 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore "Nintenlord UPS patcher.Avalonia/Nintenlord UPS patcher.Avalonia.csproj"
 
+    - name: Install Linux dependencies (for Avalonia)
+      if: startsWith(matrix.runtime, 'linux')
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          libx11-dev \
+          libice-dev \
+          libsm-dev \
+          libfontconfig1-dev
+
     - name: Publish AOT
       run: |
         dotnet publish "Nintenlord UPS patcher.Avalonia/Nintenlord UPS patcher.Avalonia.csproj" \
@@ -61,6 +71,30 @@ jobs:
           -p:PublishSingleFile=false \
           -p:StripSymbols=true \
           -o publish/${{ matrix.runtime }}
+
+    - name: Bundle Linux dependencies (for SteamOS)
+      if: startsWith(matrix.runtime, 'linux')
+      run: |
+        cd publish/${{ matrix.runtime }}
+
+        # Create a wrapper script that sets LD_LIBRARY_PATH
+        cat > "Nintenlord UPS patcher.Avalonia.sh" << 'EOF'
+        #!/bin/bash
+        DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+        export LD_LIBRARY_PATH="$DIR:$LD_LIBRARY_PATH"
+        exec "$DIR/Nintenlord UPS patcher.Avalonia" "$@"
+        EOF
+        chmod +x "Nintenlord UPS patcher.Avalonia.sh"
+
+        # Copy required shared libraries that might not be on SteamOS
+        mkdir -p lib
+
+        # Find and copy dependencies (excluding system-critical ones)
+        for lib in $(ldd "Nintenlord UPS patcher.Avalonia" | grep "=> /" | awk '{print $3}' | grep -v "^/lib64" | grep -v "^/lib/x86_64"); do
+          if [ -f "$lib" ]; then
+            cp "$lib" . 2>/dev/null || true
+          fi
+        done
 
     - name: Create archive (Windows)
       if: runner.os == 'Windows'
