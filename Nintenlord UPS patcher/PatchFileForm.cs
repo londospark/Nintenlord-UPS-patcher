@@ -24,7 +24,7 @@ namespace Nintenlord.UPSpatcher
 
         private void button3_Click(object sender, EventArgs e)
         {
-            OpenFileDialog open = new OpenFileDialog();
+            var open = new OpenFileDialog();
             open.Title = "Select a file.";
             open.Filter = "All files|*";
             open.Multiselect = false;
@@ -37,7 +37,7 @@ namespace Nintenlord.UPSpatcher
 
         private void button5_Click(object sender, EventArgs e)
         {
-            OpenFileDialog open = new OpenFileDialog();
+            var open = new OpenFileDialog();
             open.Title = "Select a patch";
             open.Filter = "UPS files|*.ups";
             open.Multiselect = false;
@@ -55,7 +55,7 @@ namespace Nintenlord.UPSpatcher
 
             try
             {
-                BinaryReader br = new BinaryReader(File.Open(textBox1.Text, FileMode.OpenOrCreate));
+                var br = new BinaryReader(File.Open(textBox1.Text, FileMode.OpenOrCreate));
                 file = br.ReadBytes((int)br.BaseStream.Length);
                 br.Close();
             }
@@ -101,11 +101,11 @@ namespace Nintenlord.UPSpatcher
 
             if (checkBox1.Checked)
             {
-                string filePath = Path.ChangeExtension(textBox1.Text, ".bak");
+                var filePath = Path.ChangeExtension(textBox1.Text, ".bak");
                 if (File.Exists(filePath))
                 {
-                    string fileName = Path.GetFileNameWithoutExtension(textBox1.Text);
-                    int i = 1;
+                    var fileName = Path.GetFileNameWithoutExtension(textBox1.Text);
+                    var i = 1;
                     while (File.Exists(Path.GetDirectoryName(textBox1.Text) + fileName + i + ".bak"))
                     {
                         i++;
@@ -120,7 +120,7 @@ namespace Nintenlord.UPSpatcher
 
             try
             {
-                BinaryWriter bw = new BinaryWriter(File.Open(textBox1.Text, FileMode.Truncate));
+                var bw = new BinaryWriter(File.Open(textBox1.Text, FileMode.Truncate));
                 bw.Write(newFile);
                 bw.Close();
             }
