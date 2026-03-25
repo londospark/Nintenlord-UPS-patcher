@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="Nintenlord UPS Patcher"
+           Manufacturer="londospark"
+           Version="1.0.0.0"
+           UpgradeCode="B8E9D9F0-8F4E-4E8E-9E8E-8E8E8E8E8E8E"
+           Scope="perUser">
+
+    <SummaryInformation Description="Nintenlord UPS Patcher - UPS patch file utility" />
+
+    <!-- Major upgrade - uninstall old versions -->
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+
+    <!-- Icon -->
+    <Icon Id="ProductIcon" SourceFile="$(var.SourceDir)\Nintenlord UPS patcher\NUPS icon.ico" />
+    <Property Id="ARPPRODUCTICON" Value="ProductIcon" />
+
+    <!-- Feature -->
+    <Feature Id="MainFeature" Title="Nintenlord UPS Patcher" Level="1">
+      <ComponentGroupRef Id="ProductComponents" />
+      <ComponentRef Id="StartMenuShortcut" />
+    </Feature>
+
+    <!-- UI -->
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.SourceDir)\.github\installers\license.rtf" />
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+  </Package>
+
+  <Fragment>
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="INSTALLFOLDER" Name="NUPS" />
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="StartMenuFolder" Name="Nintenlord UPS Patcher" />
+    </StandardDirectory>
+  </Fragment>
+
+  <Fragment>
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      <!-- Main executable -->
+      <Component Id="MainExecutable">
+        <File Source="$(var.PublishDir)\Nintenlord UPS patcher.Avalonia.exe" KeyPath="yes">
+          <Shortcut Id="DesktopShortcut"
+                    Directory="DesktopFolder"
+                    Name="Nintenlord UPS Patcher"
+                    Description="UPS Patch Utility"
+                    Icon="ProductIcon"
+                    WorkingDirectory="INSTALLFOLDER"
+                    Advertise="no" />
+        </File>
+      </Component>
+
+      <!-- All other files from publish directory -->
+      <Component Id="PublishedFiles">
+        <File Source="$(var.PublishDir)\*" Exclude="Nintenlord UPS patcher.Avalonia.exe" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- Start Menu shortcut -->
+    <Component Id="StartMenuShortcut" Directory="StartMenuFolder">
+      <Shortcut Id="StartMenuShortcut"
+                Name="Nintenlord UPS Patcher"
+                Description="UPS Patch Utility"
+                Target="[INSTALLFOLDER]Nintenlord UPS patcher.Avalonia.exe"
+                WorkingDirectory="INSTALLFOLDER"
+                Icon="ProductIcon" />
+      <RemoveFolder Id="RemoveStartMenuFolder" On="uninstall" />
+      <RegistryValue Root="HKCU"
+                     Key="Software\londospark\NUPS"
+                     Name="Installed"
+                     Type="integer"
+                     Value="1"
+                     KeyPath="yes" />
+    </Component>
+  </Fragment>
+</Wix>

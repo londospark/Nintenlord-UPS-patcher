@@ -1,5 +1,0 @@
-;!@Install@!UTF-8!
-Title="Nintenlord UPS Patcher Setup"
-BeginPrompt="Do you want to install Nintenlord UPS Patcher?"
-RunProgram="setup.bat"
-;!@InstallEnd@!
