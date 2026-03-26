@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -12,6 +13,8 @@ namespace Nintenlord.UPSpatcher.AvaloniaApp;
 
 public partial class MainWindow : Window
 {
+    private CancellationTokenSource _patchCts;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -44,16 +47,13 @@ public partial class MainWindow : Window
         }
 
         UPSfile upsFile;
-        byte[] file;
-
         try
         {
-            upsFile = new UPSfile(PatchFileTextBox.Text);
-            file = await File.ReadAllBytesAsync(PatchTargetFileTextBox.Text);
+            upsFile = await Task.Run(() => new UPSfile(PatchFileTextBox.Text));
         }
         catch
         {
-            await ShowMessageAsync("Error opening file. Verify selected file paths.");
+            await ShowMessageAsync("Error opening patch file. Verify selected file paths.");
             return;
         }
 
@@ -63,10 +63,38 @@ public partial class MainWindow : Window
             return;
         }
 
-        var validToApply = upsFile.ValidToApply(file);
+        SetPatchingState(true);
+        PatchStatusText.Text = "Verifying file…";
+        PatchProgressBar.Value = 0;
+
+        bool validToApply;
+        try
+        {
+            using var cts = new CancellationTokenSource();
+            _patchCts = cts;
+            validToApply = await upsFile.ValidToApplyAsync(PatchTargetFileTextBox.Text, cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            PatchStatusText.Text = "Cancelled.";
+            SetPatchingState(false);
+            return;
+        }
+        catch
+        {
+            await ShowMessageAsync("Error reading target file.");
+            SetPatchingState(false);
+            return;
+        }
+        finally
+        {
+            _patchCts = null;
+        }
+
         if (OnMismatchCancelRadio.IsChecked == true && !validToApply)
         {
             await ShowMessageAsync("The patch does not match the file. Patching canceled.");
+            SetPatchingState(false);
             return;
         }
 
@@ -75,6 +103,7 @@ public partial class MainWindow : Window
             var shouldContinue = await ConfirmAsync("The patch does not match the file. Patch anyway?");
             if (!shouldContinue)
             {
+                SetPatchingState(false);
                 return;
             }
         }
@@ -86,12 +115,71 @@ public partial class MainWindow : Window
 
         if (CreateBackupCheckBox.IsChecked == true)
         {
-            CreateBackup(PatchTargetFileTextBox.Text);
+            PatchStatusText.Text = "Creating backup…";
+            try
+            {
+                await Task.Run(() => CreateBackup(PatchTargetFileTextBox.Text));
+            }
+            catch
+            {
+                await ShowMessageAsync("Failed to create backup. Patching cancelled.");
+                SetPatchingState(false);
+                return;
+            }
         }
 
-        var newFile = upsFile.Apply(file);
-        await File.WriteAllBytesAsync(PatchTargetFileTextBox.Text, newFile);
+        PatchStatusText.Text = "Patching…";
+        PatchProgressBar.Value = 0;
+
+        var progress = new Progress<double>(pct =>
+        {
+            PatchProgressBar.Value = pct;
+            PatchStatusText.Text = $"Patching… {pct:F0}%";
+        });
+
+        try
+        {
+            using var cts = new CancellationTokenSource();
+            _patchCts = cts;
+            await upsFile.ApplyAsync(PatchTargetFileTextBox.Text, PatchTargetFileTextBox.Text, progress, cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            PatchStatusText.Text = "Cancelled.";
+            SetPatchingState(false);
+            return;
+        }
+        catch
+        {
+            await ShowMessageAsync("Error applying patch. The original file may be unmodified.");
+            SetPatchingState(false);
+            return;
+        }
+        finally
+        {
+            _patchCts = null;
+        }
+
+        SetPatchingState(false);
+        PatchProgressBar.Value = 100;
+        PatchStatusText.Text = "Done.";
         await ShowMessageAsync("Patching has been done.");
+        PatchProgressBar.Value = 0;
+        PatchStatusText.Text = string.Empty;
+    }
+
+    private void CancelPatch_Click(object sender, RoutedEventArgs e)
+    {
+        _patchCts?.Cancel();
+    }
+
+    private void SetPatchingState(bool isPatching)
+    {
+        ApplyPatchButton.IsEnabled = !isPatching;
+        CancelPatchButton.IsVisible = isPatching;
+        PatchProgressPanel.IsVisible = isPatching;
+        PatchTargetFileTextBox.IsEnabled = !isPatching;
+        PatchFileTextBox.IsEnabled = !isPatching;
     }
 
     private async void CreatePatch_Click(object sender, RoutedEventArgs e)

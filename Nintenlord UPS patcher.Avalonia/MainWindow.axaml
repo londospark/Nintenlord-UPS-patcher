@@ -33,8 +33,14 @@
           <CheckBox x:Name="CreateBackupCheckBox" Content="Create .bak backup before patching" IsChecked="True" Margin="0,8,0,0" />
 
           <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,12,0,0">
-            <Button Content="Apply Patch" Click="ApplyPatch_Click" />
+            <Button x:Name="ApplyPatchButton" Content="Apply Patch" Click="ApplyPatch_Click" />
+            <Button x:Name="CancelPatchButton" Content="Cancel" Click="CancelPatch_Click" IsVisible="False" />
             <Button Content="Clear" Click="ClearPatchTab_Click" />
+          </StackPanel>
+
+          <StackPanel x:Name="PatchProgressPanel" IsVisible="False" Spacing="4" Margin="0,8,0,0">
+            <ProgressBar x:Name="PatchProgressBar" Minimum="0" Maximum="100" Value="0" Height="18" />
+            <TextBlock x:Name="PatchStatusText" Text="" FontSize="11" />
           </StackPanel>
         </StackPanel>
       </ScrollViewer>
