@@ -15,22 +15,39 @@ public partial class MainWindow : Window
 {
     private CancellationTokenSource _patchCts;
 
+    // Stored so we can open them via OpenReadAsync() instead of relying on path strings,
+    // which can be unreliable on some platforms (notably Windows paths with spaces).
+    private IStorageFile _patchStorageFile;
+    private IStorageFile _inspectStorageFile;
+
     public MainWindow()
     {
         InitializeComponent();
     }
 
-    private async void BrowsePatchTargetFile_Click(object sender, RoutedEventArgs e) => PatchTargetFileTextBox.Text = await PickFilePathAsync("Select a file", false);
+    private async void BrowsePatchTargetFile_Click(object sender, RoutedEventArgs e) =>
+        PatchTargetFileTextBox.Text = await PickFilePathAsync("Select a file", false);
 
-    private async void BrowsePatchFile_Click(object sender, RoutedEventArgs e) => PatchFileTextBox.Text = await PickFilePathAsync("Select a patch", true);
+    private async void BrowsePatchFile_Click(object sender, RoutedEventArgs e)
+    {
+        _patchStorageFile = await PickStorageFileAsync("Select a patch", true);
+        PatchFileTextBox.Text = _patchStorageFile?.TryGetLocalPath() ?? _patchStorageFile?.Name ?? string.Empty;
+    }
 
-    private async void BrowseOriginalFile_Click(object sender, RoutedEventArgs e) => OriginalFileTextBox.Text = await PickFilePathAsync("Select the original file", false);
+    private async void BrowseOriginalFile_Click(object sender, RoutedEventArgs e) =>
+        OriginalFileTextBox.Text = await PickFilePathAsync("Select the original file", false);
 
-    private async void BrowseModifiedFile_Click(object sender, RoutedEventArgs e) => ModifiedFileTextBox.Text = await PickFilePathAsync("Select the modified file", false);
+    private async void BrowseModifiedFile_Click(object sender, RoutedEventArgs e) =>
+        ModifiedFileTextBox.Text = await PickFilePathAsync("Select the modified file", false);
 
-    private async void BrowseOutputPatchFile_Click(object sender, RoutedEventArgs e) => OutputPatchFileTextBox.Text = await SaveFilePathAsync("Select where to save patch", "ups");
+    private async void BrowseOutputPatchFile_Click(object sender, RoutedEventArgs e) =>
+        OutputPatchFileTextBox.Text = await SaveFilePathAsync("Select where to save patch", "ups");
 
-    private async void BrowseInspectPatchFile_Click(object sender, RoutedEventArgs e) => InspectPatchFileTextBox.Text = await PickFilePathAsync("Select a patch", true);
+    private async void BrowseInspectPatchFile_Click(object sender, RoutedEventArgs e)
+    {
+        _inspectStorageFile = await PickStorageFileAsync("Select a patch", true);
+        InspectPatchFileTextBox.Text = _inspectStorageFile?.TryGetLocalPath() ?? _inspectStorageFile?.Name ?? string.Empty;
+    }
 
     private async void ApplyPatch_Click(object sender, RoutedEventArgs e)
     {
@@ -40,7 +57,8 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(PatchFileTextBox.Text) || !File.Exists(PatchFileTextBox.Text))
+        if (_patchStorageFile == null &&
+            (string.IsNullOrWhiteSpace(PatchFileTextBox.Text) || !File.Exists(PatchFileTextBox.Text)))
         {
             await ShowMessageAsync("Patch file does not exist.");
             return;
@@ -49,7 +67,8 @@ public partial class MainWindow : Window
         UPSfile upsFile;
         try
         {
-            upsFile = await Task.Run(() => new UPSfile(PatchFileTextBox.Text));
+            var patchBytes = await ReadStorageFileBytesAsync(_patchStorageFile, PatchFileTextBox.Text);
+            upsFile = await Task.Run(() => new UPSfile(patchBytes));
         }
         catch
         {
@@ -141,7 +160,8 @@ public partial class MainWindow : Window
         {
             using var cts = new CancellationTokenSource();
             _patchCts = cts;
-            await upsFile.ApplyAsync(PatchTargetFileTextBox.Text, PatchTargetFileTextBox.Text, progress, cts.Token);
+            var targetPath = PatchTargetFileTextBox.Text;
+            await upsFile.ApplyAsync(targetPath, targetPath, progress, cts.Token);
         }
         catch (OperationCanceledException)
         {
@@ -220,7 +240,8 @@ public partial class MainWindow : Window
 
     private async void ReadPatchData_Click(object sender, RoutedEventArgs e)
     {
-        if (string.IsNullOrWhiteSpace(InspectPatchFileTextBox.Text) || !File.Exists(InspectPatchFileTextBox.Text))
+        if (_inspectStorageFile == null &&
+            (string.IsNullOrWhiteSpace(InspectPatchFileTextBox.Text) || !File.Exists(InspectPatchFileTextBox.Text)))
         {
             await ShowMessageAsync("Patch does not exist.");
             return;
@@ -228,9 +249,10 @@ public partial class MainWindow : Window
 
         try
         {
+            var patchBytes = await ReadStorageFileBytesAsync(_inspectStorageFile, InspectPatchFileTextBox.Text);
             var details = await Task.Run(() =>
             {
-                var upsFile = new UPSfile(InspectPatchFileTextBox.Text);
+                var upsFile = new UPSfile(patchBytes);
                 return upsFile.GetData();
             });
 
@@ -246,6 +268,7 @@ public partial class MainWindow : Window
     {
         PatchTargetFileTextBox.Text = string.Empty;
         PatchFileTextBox.Text = string.Empty;
+        _patchStorageFile = null;
         CreateBackupCheckBox.IsChecked = true;
         OnMismatchCancelRadio.IsChecked = true;
     }
@@ -261,6 +284,26 @@ public partial class MainWindow : Window
     {
         InspectPatchFileTextBox.Text = string.Empty;
         InspectOutputTextBox.Text = string.Empty;
+        _inspectStorageFile = null;
+    }
+
+    /// <summary>
+    /// Reads all bytes from a storage file via OpenReadAsync() if available,
+    /// otherwise falls back to reading the file at the given path.
+    /// Using OpenReadAsync() is the Avalonia-recommended approach and avoids
+    /// platform-specific path encoding issues (e.g. spaces on Windows).
+    /// </summary>
+    private static async Task<byte[]> ReadStorageFileBytesAsync(IStorageFile storageFile, string fallbackPath)
+    {
+        if (storageFile != null)
+        {
+            await using var stream = await storageFile.OpenReadAsync();
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            return ms.ToArray();
+        }
+
+        return await File.ReadAllBytesAsync(fallbackPath);
     }
 
     private static string BuildPatchData(int[,] details)
@@ -291,6 +334,7 @@ public partial class MainWindow : Window
         File.Copy(filePath, backupPath, false);
     }
 
+    /// <summary>Returns a local path string for non-patch files where a path is required (target ROM, original, modified).</summary>
     private async Task<string> PickFilePathAsync(string title, bool upsOnly)
     {
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
@@ -303,6 +347,21 @@ public partial class MainWindow : Window
         });
 
         return files.FirstOrDefault()?.TryGetLocalPath() ?? string.Empty;
+    }
+
+    /// <summary>Returns the IStorageFile directly so callers can use OpenReadAsync().</summary>
+    private async Task<IStorageFile> PickStorageFileAsync(string title, bool upsOnly)
+    {
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = title,
+            AllowMultiple = false,
+            FileTypeFilter = upsOnly
+                ? new[] { new FilePickerFileType("UPS files") { Patterns = new[] { "*.ups" } } }
+                : null
+        });
+
+        return files.FirstOrDefault();
     }
 
     private async Task<string> SaveFilePathAsync(string title, string extension)
@@ -395,5 +454,3 @@ public partial class MainWindow : Window
         return result;
     }
 }
-
-
