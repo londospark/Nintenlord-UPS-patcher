@@ -1,4 +1,4 @@
-﻿<Window xmlns="https://github.com/avaloniaui"
+<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="Nintenlord.UPSpatcher.AvaloniaApp.MainWindow"
         Width="900"
@@ -22,6 +22,15 @@
             <Button Grid.Column="1" Content="Browse" Click="BrowsePatchFile_Click" />
           </Grid>
 
+          <TextBlock Text="Output ROM file" Margin="0,8,0,0" />
+          <TextBlock Text="Leave blank to patch the target file in-place."
+                     FontSize="11" Opacity="0.6" Margin="0,-6,0,0" />
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <TextBox x:Name="PatchOutputFileTextBox"
+                     Watermark="(optional — leave blank to patch in-place)" />
+            <Button Grid.Column="1" Content="Browse" Click="BrowsePatchOutputFile_Click" />
+          </Grid>
+
           <TextBlock Text="Patch mismatch behavior" Margin="0,8,0,0" />
           <StackPanel Spacing="4">
             <RadioButton x:Name="OnMismatchCancelRadio" Content="Cancel if patch does not match (safe default)" IsChecked="True" GroupName="MismatchMode" />
@@ -30,7 +39,7 @@
             <RadioButton x:Name="OnMismatchForceRadio" Content="Always patch without warning" GroupName="MismatchMode" />
           </StackPanel>
 
-          <CheckBox x:Name="CreateBackupCheckBox" Content="Create .bak backup before patching" IsChecked="True" Margin="0,8,0,0" />
+          <CheckBox x:Name="CreateBackupCheckBox" Content="Create .bak backup before patching in-place" IsChecked="True" Margin="0,4,0,0" />
 
           <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,12,0,0">
             <Button x:Name="ApplyPatchButton" Content="Apply Patch" Click="ApplyPatch_Click" />

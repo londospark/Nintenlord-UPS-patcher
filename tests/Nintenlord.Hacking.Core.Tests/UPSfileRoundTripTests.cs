@@ -13,7 +13,7 @@ public class UPSfileRoundTripTests
         try
         {
             generated.WriteToFile(tempPath);
-            var loaded = new UPSfile(tempPath);
+            using var loaded = new UPSfile(tempPath);
 
             Assert.True(loaded.ValidPatch);
             Assert.Equal(modified, loaded.Apply(original));
@@ -39,12 +39,19 @@ public class UPSfileRoundTripTests
         try
         {
             patch1.WriteToFile(path1);
-            var loaded1 = new UPSfile(path1);
-            loaded1.WriteToFile(path2);
-            var loaded2 = new UPSfile(path2);
+            byte[] result1, result2;
+            using (var loaded1 = new UPSfile(path1))
+            {
+                loaded1.WriteToFile(path2);
+                result1 = loaded1.Apply(a);
+            }
+            using (var loaded2 = new UPSfile(path2))
+            {
+                result2 = loaded2.Apply(a);
+            }
 
-            Assert.Equal(patch1.Apply(a), loaded1.Apply(a));
-            Assert.Equal(loaded1.Apply(a), loaded2.Apply(a));
+            Assert.Equal(patch1.Apply(a), result1);
+            Assert.Equal(result1, result2);
         }
         finally
         {
