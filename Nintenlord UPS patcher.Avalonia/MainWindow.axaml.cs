@@ -37,6 +37,9 @@ public partial class MainWindow : Window
     private async void BrowseOriginalFile_Click(object sender, RoutedEventArgs e) =>
         OriginalFileTextBox.Text = await PickFilePathAsync("Select the original file", false);
 
+    private async void BrowsePatchOutputFile_Click(object sender, RoutedEventArgs e) =>
+        PatchOutputFileTextBox.Text = await SaveFilePathAsync("Save patched ROM as…", "*");
+
     private async void BrowseModifiedFile_Click(object sender, RoutedEventArgs e) =>
         ModifiedFileTextBox.Text = await PickFilePathAsync("Select the modified file", false);
 
@@ -67,8 +70,21 @@ public partial class MainWindow : Window
         UPSfile upsFile;
         try
         {
-            var patchBytes = await ReadStorageFileBytesAsync(_patchStorageFile, PatchFileTextBox.Text);
-            upsFile = await Task.Run(() => new UPSfile(patchBytes));
+            // Prefer memory-mapped loading (zero-copy, OS pages on demand) when we
+            // have a real local path. Fall back to stream bytes for mobile/cloud files
+            // where TryGetLocalPath() returns null.
+            var localPatchPath = _patchStorageFile?.TryGetLocalPath()
+                ?? (File.Exists(PatchFileTextBox.Text) ? PatchFileTextBox.Text : null);
+
+            if (localPatchPath != null)
+            {
+                upsFile = await Task.Run(() => new UPSfile(localPatchPath));
+            }
+            else
+            {
+                var patchBytes = await ReadStorageFileBytesAsync(_patchStorageFile, PatchFileTextBox.Text);
+                upsFile = await Task.Run(() => new UPSfile(patchBytes));
+            }
         }
         catch
         {
@@ -139,7 +155,14 @@ public partial class MainWindow : Window
             await ShowMessageAsync("The patch does not match the file. Patching anyway.");
         }
 
-        if (CreateBackupCheckBox.IsChecked == true)
+        // Determine output path: separate file preserves the original, blank = patch in-place.
+        var outputPath = string.IsNullOrWhiteSpace(PatchOutputFileTextBox.Text)
+            ? PatchTargetFileTextBox.Text
+            : PatchOutputFileTextBox.Text;
+        var patchingInPlace = string.Equals(outputPath, PatchTargetFileTextBox.Text,
+            StringComparison.OrdinalIgnoreCase);
+
+        if (CreateBackupCheckBox.IsChecked == true && patchingInPlace)
         {
             PatchStatusText.Text = "Creating backup…";
             PatchProgressBar.Value = 0;
@@ -186,9 +209,10 @@ public partial class MainWindow : Window
         {
             using var cts = new CancellationTokenSource();
             _patchCts = cts;
-            var targetPath = PatchTargetFileTextBox.Text;
+            var inputPath = PatchTargetFileTextBox.Text;
+            var outPath = outputPath;
             await Task.Run(async () =>
-                await upsFile.ApplyAsync(targetPath, targetPath, progress, cts.Token));
+                await upsFile.ApplyAsync(inputPath, outPath, progress, cts.Token));
         }
         catch (OperationCanceledException)
         {
@@ -295,6 +319,7 @@ public partial class MainWindow : Window
     {
         PatchTargetFileTextBox.Text = string.Empty;
         PatchFileTextBox.Text = string.Empty;
+        PatchOutputFileTextBox.Text = string.Empty;
         _patchStorageFile = null;
         CreateBackupCheckBox.IsChecked = true;
         OnMismatchCancelRadio.IsChecked = true;
@@ -420,13 +445,18 @@ public partial class MainWindow : Window
 
     private async Task<string> SaveFilePathAsync(string title, string extension)
     {
-        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        var options = new FilePickerSaveOptions { Title = title };
+        if (extension == "*")
         {
-            Title = title,
-            DefaultExtension = extension,
-            FileTypeChoices = new[] { new FilePickerFileType("UPS file") { Patterns = new[] { "*.ups" } } }
-        });
+            options.FileTypeChoices = new[] { new FilePickerFileType("All files") { Patterns = new[] { "*.*" } } };
+        }
+        else
+        {
+            options.DefaultExtension = extension;
+            options.FileTypeChoices = new[] { new FilePickerFileType("UPS file") { Patterns = new[] { "*.ups" } } };
+        }
 
+        var file = await StorageProvider.SaveFilePickerAsync(options);
         return file?.TryGetLocalPath() ?? string.Empty;
     }
 
