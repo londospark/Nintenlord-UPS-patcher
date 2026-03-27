@@ -91,7 +91,14 @@ public partial class MainWindow : Window
         {
             using var cts = new CancellationTokenSource();
             _patchCts = cts;
-            validToApply = await upsFile.ValidToApplyAsync(PatchTargetFileTextBox.Text, cts.Token);
+            var verifyProgress = new Progress<double>(pct =>
+            {
+                PatchProgressBar.Value = pct;
+                PatchStatusText.Text = $"Verifying… {pct:F0}%";
+            });
+            var targetPath = PatchTargetFileTextBox.Text;
+            validToApply = await Task.Run(async () =>
+                await upsFile.ValidToApplyAsync(targetPath, cts.Token, verifyProgress));
         }
         catch (OperationCanceledException)
         {
@@ -135,15 +142,34 @@ public partial class MainWindow : Window
         if (CreateBackupCheckBox.IsChecked == true)
         {
             PatchStatusText.Text = "Creating backup…";
+            PatchProgressBar.Value = 0;
+            var backupProgress = new Progress<double>(pct =>
+            {
+                PatchProgressBar.Value = pct;
+                PatchStatusText.Text = $"Backing up… {pct:F0}%";
+            });
             try
             {
-                await Task.Run(() => CreateBackup(PatchTargetFileTextBox.Text));
+                using var backupCts = new CancellationTokenSource();
+                _patchCts = backupCts;
+                var targetForBackup = PatchTargetFileTextBox.Text;
+                await Task.Run(async () => await CreateBackupAsync(targetForBackup, backupProgress, backupCts.Token));
+            }
+            catch (OperationCanceledException)
+            {
+                PatchStatusText.Text = "Cancelled.";
+                SetPatchingState(false);
+                return;
             }
             catch
             {
                 await ShowMessageAsync("Failed to create backup. Patching cancelled.");
                 SetPatchingState(false);
                 return;
+            }
+            finally
+            {
+                _patchCts = null;
             }
         }
 
@@ -161,7 +187,8 @@ public partial class MainWindow : Window
             using var cts = new CancellationTokenSource();
             _patchCts = cts;
             var targetPath = PatchTargetFileTextBox.Text;
-            await upsFile.ApplyAsync(targetPath, targetPath, progress, cts.Token);
+            await Task.Run(async () =>
+                await upsFile.ApplyAsync(targetPath, targetPath, progress, cts.Token));
         }
         catch (OperationCanceledException)
         {
@@ -318,7 +345,7 @@ public partial class MainWindow : Window
         return sb.ToString();
     }
 
-    private static void CreateBackup(string filePath)
+    private static async Task CreateBackupAsync(string filePath, IProgress<double> progress = null, CancellationToken cancellationToken = default)
     {
         var directory = Path.GetDirectoryName(filePath) ?? string.Empty;
         var fileName = Path.GetFileNameWithoutExtension(filePath);
@@ -331,7 +358,34 @@ public partial class MainWindow : Window
             index++;
         }
 
-        File.Copy(filePath, backupPath, false);
+        var totalBytes = (double)new FileInfo(filePath).Length;
+        long copied = 0;
+        var lastReportedPct = -1;
+        const int bufferSize = 1024 * 1024; // 1 MB chunks
+
+        using var source = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read,
+            bufferSize, FileOptions.Asynchronous | FileOptions.SequentialScan);
+        using var dest = new FileStream(backupPath, FileMode.Create, FileAccess.Write, FileShare.None,
+            bufferSize, FileOptions.Asynchronous);
+
+        var buffer = new byte[bufferSize];
+        int bytesRead;
+        while ((bytesRead = await source.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) > 0)
+        {
+            await dest.WriteAsync(buffer, 0, bytesRead, cancellationToken).ConfigureAwait(false);
+            copied += bytesRead;
+            if (progress != null && totalBytes > 0)
+            {
+                var pct = (int)(copied / totalBytes * 100.0);
+                if (pct != lastReportedPct)
+                {
+                    progress.Report(pct);
+                    lastReportedPct = pct;
+                }
+            }
+        }
+
+        await dest.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Returns a local path string for non-patch files where a path is required (target ROM, original, modified).</summary>
