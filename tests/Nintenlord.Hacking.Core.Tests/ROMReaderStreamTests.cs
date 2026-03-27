@@ -45,7 +45,7 @@ public class ROMReaderStreamTests
         using var stream = new ROMReaderStream(new FakeROM(SampleData));
         var buffer = new byte[4];
 
-        stream.Read(buffer, 0, 4);
+        stream.ReadExactly(buffer, 0, 4);
 
         Assert.Equal(new byte[] { 0x01, 0x02, 0x03, 0x04 }, buffer);
     }
