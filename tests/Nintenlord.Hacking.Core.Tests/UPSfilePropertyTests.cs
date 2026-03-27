@@ -44,6 +44,12 @@ public class UPSfilePropertyTests
         var mutated = (byte[])first.Clone();
         mutated[0] ^= 0xFF;
 
+        // If XOR happens to turn first into target, this case is vacuously uninteresting
+        if (mutated.SequenceEqual(target))
+        {
+            return true;
+        }
+
         return patch.ValidToApply(first)
                && patch.ValidToApply(target)
                && !patch.ValidToApply(mutated);
