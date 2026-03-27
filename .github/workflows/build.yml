@@ -119,6 +119,12 @@ jobs:
       if: startsWith(matrix.runtime, 'linux')
       run: bash .github/scripts/bundle-linux-deps.sh "publish/${{ matrix.runtime }}"
 
+    - name: Create portable archive (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        cd publish/${{ matrix.runtime }}
+        7z a ../../Nintenlord-UPS-Patcher-Portable-${{ matrix.runtime }}.zip *
+
     - name: Upload artifacts
       uses: actions/upload-artifact@v7
       with:
