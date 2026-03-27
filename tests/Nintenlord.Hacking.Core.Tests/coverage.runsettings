@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Focus coverage on the UPS-patcher library only.
+     Excludes the Nintenlord general-purpose utility assembly (collections,
+     grammars, IO, parsers, etc.) which are unrelated to UPS patching. -->
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <Include>[Nintenlord.Hacking.Core]*</Include>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

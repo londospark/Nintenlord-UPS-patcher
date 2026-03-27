@@ -7,7 +7,7 @@ public class UPSfilePropertyTests
     [Property(MaxTest = 120)]
     public bool ApplyThenApplyAgain_ReturnsOriginal_ForEqualLengthFiles(byte[] first, byte[] second)
     {
-        if (first == null || second == null || first.Length == 0 || second.Length == 0)
+        if (first.Length == 0 || second.Length == 0)
         {
             return true;
         }
@@ -29,7 +29,7 @@ public class UPSfilePropertyTests
     [Property(MaxTest = 120)]
     public bool ValidToApply_TrueForBothSides_AndFalseForMutated(byte[] first, byte[] second)
     {
-        if (first == null || second == null || first.Length == 0 || second.Length == 0)
+        if (first.Length == 0 || second.Length == 0)
         {
             return true;
         }
@@ -52,7 +52,7 @@ public class UPSfilePropertyTests
     [Property(MaxTest = 90)]
     public bool PatchAddition_ComposesTransformations(byte[] source, byte[] mid, byte[] end)
     {
-        if (source == null || mid == null || end == null || source.Length == 0)
+        if (source.Length == 0)
         {
             return true;
         }
