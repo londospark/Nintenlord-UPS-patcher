@@ -29,7 +29,8 @@ jobs:
         dotnet test tests/Nintenlord.Hacking.Core.Tests/Nintenlord.Hacking.Core.Tests.csproj \
           -c Release \
           --collect:"XPlat Code Coverage" \
-          --results-directory coverage
+          --results-directory coverage \
+          --settings tests/Nintenlord.Hacking.Core.Tests/coverage.runsettings
 
     - name: Generate coverage report
       uses: danielpalme/ReportGenerator-GitHub-Action@5
