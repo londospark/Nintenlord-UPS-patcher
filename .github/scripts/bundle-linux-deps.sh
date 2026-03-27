@@ -19,8 +19,8 @@ exec "$DIR/Nintenlord UPS patcher.Avalonia" "$@"
 EOF
 chmod +x "Nintenlord UPS patcher.Avalonia.sh"
 
-# Copy required shared libraries that might not be on SteamOS
-mkdir -p lib
+# Copy required shared libraries that might not be on SteamOS directly alongside the binary.
+# The AppRun sets LD_LIBRARY_PATH to this directory so they are found at runtime.
 
 # Find and copy dependencies (excluding system-critical ones)
 for lib in $(ldd "Nintenlord UPS patcher.Avalonia" | grep "=> /" | awk '{print $3}' | grep -v "^/lib64" | grep -v "^/lib/x86_64"); do
