@@ -42,12 +42,12 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         submodules: recursive
 
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: '10.0.x'
 
@@ -93,7 +93,7 @@ jobs:
         tar -czf ../../Nintenlord-UPS-Patcher-${{ matrix.runtime }}.tar.gz *
 
     - name: Upload artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ${{ matrix.artifact-name }}
         path: |
@@ -114,10 +114,10 @@ jobs:
             artifact-name: nups-windows-arm64
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Download Windows build
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: ${{ matrix.artifact-name }}
         path: publish/${{ matrix.runtime }}
@@ -129,7 +129,7 @@ jobs:
         Remove-Item Nintenlord-UPS-Patcher-Portable-${{ matrix.runtime }}.zip
 
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: '10.0.x'
 
@@ -140,7 +140,7 @@ jobs:
         & ".github\scripts\create-msi.ps1" -Runtime ${{ matrix.runtime }} -Version $version
 
     - name: Upload MSI installer
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ${{ matrix.artifact-name }}-msi
         path: Nintenlord-UPS-Patcher-Setup-${{ matrix.runtime }}.msi
@@ -159,13 +159,13 @@ jobs:
             arch: aarch64
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Install squashfs-tools
       run: sudo apt-get install -y squashfs-tools
 
     - name: Download Linux build
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: nups-${{ matrix.runtime }}
         path: build
@@ -180,7 +180,7 @@ jobs:
       run: bash .github/scripts/create-appimage.sh ${{ matrix.runtime }} ${{ matrix.arch }} build
 
     - name: Upload AppImage
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: nups-appimage-${{ matrix.runtime }}
         path: Nintenlord-UPS-Patcher-${{ matrix.runtime }}.AppImage
@@ -191,10 +191,10 @@ jobs:
     needs: build
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Download macOS builds
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         pattern: nups-macos-*
         path: builds
@@ -212,7 +212,7 @@ jobs:
       run: bash .github/scripts/create-macos-bundle.sh builds/nups-macos-arm64 builds/nups-macos-x64
 
     - name: Upload macOS Universal App
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: nups-macos-universal
         path: Nintenlord-UPS-Patcher-macOS-universal.dmg
@@ -227,7 +227,7 @@ jobs:
 
     steps:
     - name: Download all artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         path: artifacts
 
