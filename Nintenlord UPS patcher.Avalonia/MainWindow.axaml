@@ -108,7 +108,7 @@
                    AcceptsReturn="True"
                    IsReadOnly="True"
                    MinHeight="360"
-                   FontFamily="Consolas" />
+                   FontFamily="Consolas,Courier New,monospace" />
         </StackPanel>
       </ScrollViewer>
     </TabItem>

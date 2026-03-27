@@ -24,25 +24,34 @@ mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
 cp -r "$BUILD_DIR"/* AppDir/usr/bin/
 chmod +x AppDir/usr/bin/Nintenlord\ UPS\ patcher.Avalonia || true
 
-# Desktop file
+# Desktop file — MimeType lets users double-click .ups files to open the patcher
 cat > AppDir/nups.desktop << 'EOF'
 [Desktop Entry]
 Type=Application
 Name=Nintenlord UPS Patcher
-Exec=Nintenlord UPS patcher.Avalonia
+Exec=Nintenlord UPS patcher.Avalonia %f
 Icon=nups
 Categories=Utility;
+MimeType=application/x-ups;
 Terminal=false
 EOF
 cp AppDir/nups.desktop AppDir/usr/share/applications/nups.desktop
 
-# AppRun entry point
+# AppRun entry point — sets LD_LIBRARY_PATH so bundled libs are found on SteamOS
 cat > AppDir/AppRun << 'EOF'
 #!/bin/bash
 SELF=$(readlink -f "$0")
 HERE=${SELF%/*}
-export PATH="${HERE}/usr/bin:${PATH}"
-exec "${HERE}/usr/bin/Nintenlord UPS patcher.Avalonia" "$@"
+BINDIR="${HERE}/usr/bin"
+
+# Make bundled libraries visible to the dynamic linker
+export LD_LIBRARY_PATH="${BINDIR}:${LD_LIBRARY_PATH}"
+export PATH="${BINDIR}:${PATH}"
+
+# Prefer Wayland when available; fall back to X11/XWayland automatically
+# (Avalonia 11 auto-detects — no need to force either backend)
+
+exec "${BINDIR}/Nintenlord UPS patcher.Avalonia" "$@"
 EOF
 chmod +x AppDir/AppRun
 
