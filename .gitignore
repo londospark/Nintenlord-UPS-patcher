@@ -366,3 +366,11 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 .idea/
+
+# JetBrains dotMemory / dotTrace / profiler snapshots
+*.dmw
+*.dmp
+*.nettrace
+*.dtpmark
+*.dtt
+Jumezid.json
