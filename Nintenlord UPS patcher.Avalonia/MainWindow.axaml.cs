@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -14,6 +15,7 @@ namespace Nintenlord.UPSpatcher.AvaloniaApp;
 public partial class MainWindow : Window
 {
     private CancellationTokenSource _patchCts;
+    private CancellationTokenSource _createCts;
 
     // Stored so we can open them via OpenReadAsync() instead of relying on path strings,
     // which can be unreliable on some platforms (notably Windows paths with spaces).
@@ -92,6 +94,9 @@ public partial class MainWindow : Window
             return;
         }
 
+        // Dispose the memory-mapped patch file when we leave this method (success, error, or cancel).
+        using var _ = upsFile;
+
         if (!upsFile.ValidPatch)
         {
             await ShowMessageAsync("The patch is corrupt.");
@@ -99,19 +104,13 @@ public partial class MainWindow : Window
         }
 
         SetPatchingState(true);
-        PatchStatusText.Text = "Verifying file…";
-        PatchProgressBar.Value = 0;
 
         bool validToApply;
         try
         {
             using var cts = new CancellationTokenSource();
             _patchCts = cts;
-            var verifyProgress = new Progress<double>(pct =>
-            {
-                PatchProgressBar.Value = pct;
-                PatchStatusText.Text = $"Verifying… {pct:F0}%";
-            });
+            var verifyProgress = MakeProgressReporter(PatchProgressBar, PatchStatusText, "Verifying");
             var targetPath = PatchTargetFileTextBox.Text;
             validToApply = await Task.Run(async () =>
                 await upsFile.ValidToApplyAsync(targetPath, cts.Token, verifyProgress));
@@ -164,13 +163,7 @@ public partial class MainWindow : Window
 
         if (CreateBackupCheckBox.IsChecked == true && patchingInPlace)
         {
-            PatchStatusText.Text = "Creating backup…";
-            PatchProgressBar.Value = 0;
-            var backupProgress = new Progress<double>(pct =>
-            {
-                PatchProgressBar.Value = pct;
-                PatchStatusText.Text = $"Backing up… {pct:F0}%";
-            });
+            var backupProgress = MakeProgressReporter(PatchProgressBar, PatchStatusText, "Backing up");
             try
             {
                 using var backupCts = new CancellationTokenSource();
@@ -196,14 +189,7 @@ public partial class MainWindow : Window
             }
         }
 
-        PatchStatusText.Text = "Patching…";
-        PatchProgressBar.Value = 0;
-
-        var progress = new Progress<double>(pct =>
-        {
-            PatchProgressBar.Value = pct;
-            PatchStatusText.Text = $"Patching… {pct:F0}%";
-        });
+        var progress = MakeProgressReporter(PatchProgressBar, PatchStatusText, "Patching");
 
         try
         {
@@ -232,11 +218,7 @@ public partial class MainWindow : Window
         }
 
         SetPatchingState(false);
-        PatchProgressBar.Value = 100;
-        PatchStatusText.Text = "Done.";
         await ShowMessageAsync("Patching has been done.");
-        PatchProgressBar.Value = 0;
-        PatchStatusText.Text = string.Empty;
     }
 
     private void CancelPatch_Click(object sender, RoutedEventArgs e)
@@ -251,6 +233,11 @@ public partial class MainWindow : Window
         PatchProgressPanel.IsVisible = isPatching;
         PatchTargetFileTextBox.IsEnabled = !isPatching;
         PatchFileTextBox.IsEnabled = !isPatching;
+        if (!isPatching)
+        {
+            PatchProgressBar.Value = 0;
+            PatchStatusText.Text = string.Empty;
+        }
     }
 
     private async void CreatePatch_Click(object sender, RoutedEventArgs e)
@@ -273,26 +260,65 @@ public partial class MainWindow : Window
             return;
         }
 
+        SetCreatingState(true);
+        var createProgress = MakeProgressReporter(CreateProgressBar, CreateStatusText, "Creating");
+
         try
         {
-            var original = await File.ReadAllBytesAsync(OriginalFileTextBox.Text);
-            var modified = await File.ReadAllBytesAsync(ModifiedFileTextBox.Text);
-            var upsFile = new UPSfile(original, modified);
-            upsFile.WriteToFile(OutputPatchFileTextBox.Text);
+            using var cts = new CancellationTokenSource();
+            _createCts = cts;
+            var orig = OriginalFileTextBox.Text;
+            var modi = ModifiedFileTextBox.Text;
+            var output = OutputPatchFileTextBox.Text;
+            await UPSfile.WriteAsync(orig, modi, output, createProgress, cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            CreateStatusText.Text = "Cancelled.";
+            SetCreatingState(false);
+            return;
         }
         catch
         {
             await ShowMessageAsync("Error creating patch. Verify selected file paths.");
+            SetCreatingState(false);
             return;
         }
+        finally
+        {
+            _createCts = null;
+        }
 
+        SetCreatingState(false);
         await ShowMessageAsync("Patch has been created.");
+    }
+
+    private void CancelCreate_Click(object sender, RoutedEventArgs e)
+    {
+        _createCts?.Cancel();
+    }
+
+    private void SetCreatingState(bool isCreating)
+    {
+        CreatePatchButton.IsEnabled = !isCreating;
+        CancelCreateButton.IsVisible = isCreating;
+        CreateProgressPanel.IsVisible = isCreating;
+        OriginalFileTextBox.IsEnabled = !isCreating;
+        ModifiedFileTextBox.IsEnabled = !isCreating;
+        OutputPatchFileTextBox.IsEnabled = !isCreating;
+        if (!isCreating)
+        {
+            CreateProgressBar.Value = 0;
+            CreateStatusText.Text = string.Empty;
+        }
     }
 
     private async void ReadPatchData_Click(object sender, RoutedEventArgs e)
     {
-        if (_inspectStorageFile == null &&
-            (string.IsNullOrWhiteSpace(InspectPatchFileTextBox.Text) || !File.Exists(InspectPatchFileTextBox.Text)))
+        var localPath = _inspectStorageFile?.TryGetLocalPath()
+            ?? (File.Exists(InspectPatchFileTextBox.Text) ? InspectPatchFileTextBox.Text : null);
+
+        if (localPath == null && _inspectStorageFile == null)
         {
             await ShowMessageAsync("Patch does not exist.");
             return;
@@ -300,14 +326,28 @@ public partial class MainWindow : Window
 
         try
         {
-            var patchBytes = await ReadStorageFileBytesAsync(_inspectStorageFile, InspectPatchFileTextBox.Text);
-            var details = await Task.Run(() =>
+            string detailsText;
+            if (localPath != null)
             {
-                var upsFile = new UPSfile(patchBytes);
-                return upsFile.GetData();
-            });
+                // Memory-mapped load + inspect entirely off the UI thread.
+                detailsText = await Task.Run(() =>
+                {
+                    using var upsFile = new UPSfile(localPath);
+                    return BuildPatchData(upsFile.GetData());
+                });
+            }
+            else
+            {
+                // Mobile/cloud fallback: read via IStorageFile stream.
+                var patchBytes = await ReadStorageFileBytesAsync(_inspectStorageFile, InspectPatchFileTextBox.Text);
+                detailsText = await Task.Run(() =>
+                {
+                    using var upsFile = new UPSfile(patchBytes);
+                    return BuildPatchData(upsFile.GetData());
+                });
+            }
 
-            InspectOutputTextBox.Text = BuildPatchData(details);
+            InspectOutputTextBox.Text = detailsText;
         }
         catch
         {
@@ -459,6 +499,46 @@ public partial class MainWindow : Window
         var file = await StorageProvider.SaveFilePickerAsync(options);
         return file?.TryGetLocalPath() ?? string.Empty;
     }
+
+    /// <summary>
+    /// Creates a reusable <see cref="IProgress{T}"/> (0–100) that writes a uniform
+    /// "Phase… N% — Xm Ys remaining" line to <paramref name="text"/> and tracks the
+    /// progress value in <paramref name="bar"/>.  ETA uses the simple linear estimator
+    /// elapsed × (1−f)/f, shown only after ≥2% progress and ≥1.5 s elapsed so the
+    /// early noisy readings are suppressed.  The start timestamp is captured once on the
+    /// calling (UI) thread; the callback runs on the UI thread via Progress&lt;T&gt;.
+    /// </summary>
+    private static IProgress<double> MakeProgressReporter(
+        ProgressBar bar, TextBlock text, string phase)
+    {
+        var started = Stopwatch.GetTimestamp();
+        text.Text = $"{phase}…";
+        bar.Value = 0;
+
+        return new Progress<double>(pct =>
+        {
+            bar.Value = pct;
+            var fraction = pct / 100.0;
+            var elapsed = Stopwatch.GetElapsedTime(started);
+
+            if (fraction < 0.02 || elapsed.TotalSeconds < 1.5)
+            {
+                text.Text = $"{phase}… {pct:F0}%";
+                return;
+            }
+
+            var remaining = TimeSpan.FromSeconds(elapsed.TotalSeconds * (1.0 - fraction) / fraction);
+            text.Text = $"{phase}… {pct:F0}% — {FormatEta(remaining)}";
+        });
+    }
+
+    private static string FormatEta(TimeSpan t) => t.TotalSeconds switch
+    {
+        < 5    => "almost done",
+        < 60   => $"{(int)t.TotalSeconds}s remaining",
+        < 3600 => $"{(int)t.TotalMinutes}m {t.Seconds:D2}s remaining",
+        _      => $"{(int)t.TotalHours}h {t.Minutes:D2}m remaining"
+    };
 
     private async Task ShowMessageAsync(string message)
     {
