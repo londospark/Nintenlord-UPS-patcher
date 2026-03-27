@@ -1,0 +1,26 @@
+version: 2
+
+updates:
+  # Keep GitHub Actions up to date
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+
+  # Keep NuGet packages in the Avalonia app up to date
+  - package-ecosystem: "nuget"
+    directory: "/Nintenlord UPS patcher.Avalonia"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+
+  # Keep NuGet packages in the test project up to date
+  - package-ecosystem: "nuget"
+    directory: "/tests/Nintenlord.Hacking.Core.Tests"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
