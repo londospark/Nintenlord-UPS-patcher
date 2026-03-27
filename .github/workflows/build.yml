@@ -49,29 +49,62 @@ jobs:
         path: coverage/report
         if-no-files-found: error
 
-  build:
+  build-windows:
+    needs: test
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runtime: win-x64
+            artifact-name: nups-windows-x64
+          - runtime: win-arm64
+            artifact-name: nups-windows-arm64
+
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        submodules: recursive
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore "Nintenlord UPS patcher.Avalonia/Nintenlord UPS patcher.Avalonia.csproj"
+
+    - name: Publish AOT
+      shell: bash
+      run: |
+        dotnet publish "Nintenlord UPS patcher.Avalonia/Nintenlord UPS patcher.Avalonia.csproj" \
+          -c Release \
+          -r ${{ matrix.runtime }} \
+          --self-contained \
+          -p:PublishAot=true \
+          -p:PublishSingleFile=false \
+          -p:StripSymbols=true \
+          -o publish/${{ matrix.runtime }}
+
+    - name: Create portable archive
+      run: |
+        cd publish/${{ matrix.runtime }}
+        7z a Nintenlord-UPS-Patcher-Portable-${{ matrix.runtime }}.zip *
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ matrix.artifact-name }}
+        path: publish/${{ matrix.runtime }}/*
+        if-no-files-found: error
+
+  build-linux:
     needs: test
     strategy:
       fail-fast: false
       matrix:
         include:
-          # Windows
-          - os: windows-latest
-            runtime: win-x64
-            artifact-name: nups-windows-x64
-          - os: windows-latest
-            runtime: win-arm64
-            artifact-name: nups-windows-arm64
-
-          # macOS
-          - os: macos-15-intel
-            runtime: osx-x64
-            artifact-name: nups-macos-x64
-          - os: macos-latest
-            runtime: osx-arm64
-            artifact-name: nups-macos-arm64
-
-          # Linux - ubuntu-22.04 (glibc 2.35, compatible with SteamOS 3+ and modern distros)
+          # ubuntu-22.04 (glibc 2.35, compatible with SteamOS 3+ and modern distros)
           - os: ubuntu-22.04
             runtime: linux-x64
             artifact-name: nups-linux-x64
@@ -95,7 +128,6 @@ jobs:
       run: dotnet restore "Nintenlord UPS patcher.Avalonia/Nintenlord UPS patcher.Avalonia.csproj"
 
     - name: Install Linux dependencies (for Avalonia)
-      if: startsWith(matrix.runtime, 'linux')
       run: |
         sudo apt-get update
         sudo apt-get install -y \
@@ -117,14 +149,54 @@ jobs:
           -o publish/${{ matrix.runtime }}
 
     - name: Bundle Linux dependencies (for SteamOS)
-      if: startsWith(matrix.runtime, 'linux')
       run: bash .github/scripts/bundle-linux-deps.sh "publish/${{ matrix.runtime }}"
 
-    - name: Create portable archive (Windows)
-      if: runner.os == 'Windows'
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ matrix.artifact-name }}
+        path: publish/${{ matrix.runtime }}/*
+        if-no-files-found: error
+
+  build-macos:
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15-intel
+            runtime: osx-x64
+            artifact-name: nups-macos-x64
+          - os: macos-latest
+            runtime: osx-arm64
+            artifact-name: nups-macos-arm64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        submodules: recursive
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore "Nintenlord UPS patcher.Avalonia/Nintenlord UPS patcher.Avalonia.csproj"
+
+    - name: Publish AOT
+      shell: bash
       run: |
-        cd publish/${{ matrix.runtime }}
-        7z a Nintenlord-UPS-Patcher-Portable-${{ matrix.runtime }}.zip *
+        dotnet publish "Nintenlord UPS patcher.Avalonia/Nintenlord UPS patcher.Avalonia.csproj" \
+          -c Release \
+          -r ${{ matrix.runtime }} \
+          --self-contained \
+          -p:PublishAot=true \
+          -p:PublishSingleFile=false \
+          -p:StripSymbols=true \
+          -o publish/${{ matrix.runtime }}
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v7
@@ -135,7 +207,7 @@ jobs:
 
   build-windows-msi:
     runs-on: windows-latest
-    needs: build
+    needs: build-windows
     strategy:
       fail-fast: false
       matrix:
@@ -175,7 +247,7 @@ jobs:
 
   build-linux-appimage:
     runs-on: ubuntu-latest
-    needs: build
+    needs: build-linux
 
     strategy:
       matrix:
@@ -210,7 +282,7 @@ jobs:
 
   build-macos-universal:
     runs-on: macos-latest
-    needs: build
+    needs: build-macos
 
     steps:
     - uses: actions/checkout@v6
